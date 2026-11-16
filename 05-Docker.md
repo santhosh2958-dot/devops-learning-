@@ -1,1549 +1,1472 @@
-# 🐳 Complete Docker Notes – Beginner to Advanced
+# 🐳 Docker.md – Complete Docker Commands & Practical Guide
+## Beginner to Advanced | Linux | AWS EC2 | DevOps
 
-> Complete Docker learning guide for Linux, DevOps, AWS, and real-time projects.
+> All 23 requested Docker topics and the all-in-one command reference in a single Markdown file.
+
+![Docker](https://www.docker.com/wp-content/uploads/2022/03/Moby-logo.png)
 
 ---
 
-# 📚 Table of Contents
+## Table of Contents
 
-1. Introduction to Docker
-2. Docker Architecture
-3. Docker Installation and Verification
-4. Docker Basic Commands
-5. Docker Images
-6. Docker Containers
-7. Docker Run Commands
-8. Container Start, Stop, Restart, Attach and Exec
-9. Docker Logs and Troubleshooting
-10. Dockerfile
-11. Docker Image Build, Tag and Push
-12. Docker Networking
-13. Docker Volumes and Storage
+1. Docker fundamentals
+2. Understand the sample `docker run` command
+3. Docker command structure and options
+4. Installation and service management
+5. Images and registries
+6. Containers: create, list, start, stop, restart, remove
+7. `docker run` options – detailed reference
+8. Entering containers: `exec`, `attach`, `cp`
+9. Logs, inspect, processes and troubleshooting
+10. Dockerfile and image build
+11. Ports and networking
+12. Volumes and bind mounts
+13. Environment variables, resource limits and restart policies
 14. Docker Compose
-15. Docker Registry and Docker Hub
-16. Docker System Management and Cleanup
-17. Docker Resource Management
-18. Docker Security Basics
-19. Docker Troubleshooting – Real-Time Commands
-20. Complete Docker Hands-on Project
-21. Docker Daily-Use Commands Cheat Sheet
-22. Docker Interview Questions and Answers
+15. Docker system, disk usage and cleanup
+16. Docker security
+17. Practical exercises
+18. Daily-use command cheat sheet
+19. Interview questions and answers
+20. Important command differences
 
 ---
 
-# 1. Introduction to Docker
+# 1. Docker fundamentals
 
-## What is Docker?
+- **Docker image:** A packaged, read-only template containing application files and dependencies.
+- **Docker container:** An instance created from an image. It has a writable container layer while it exists.
+- **Dockerfile:** Text instructions used to build an image.
+- **Volume:** Docker-managed persistent storage.
+- **Bind mount:** Maps a specific host directory or file into a container.
+- **Port mapping:** Connects a host port to a container port.
+- **Registry:** A service that stores and distributes images, such as Docker Hub.
+- **Docker daemon:** Background service (`dockerd`) that manages Docker objects.
 
-Docker is an open-source platform used to build, package, ship, and run applications inside containers.
-
-Docker helps developers run applications in a consistent environment.
-
-### Simple Example
-
-Suppose an application works on your laptop but fails on another server because of different software versions.
-
-Docker solves this problem by packaging the application and its dependencies into a container image.
-
-### Why Docker?
-
-- Run applications consistently.
-- Reduce environment-related issues.
-- Deploy applications faster.
-- Run multiple isolated applications.
-- Make application deployment easier.
-- Improve DevOps automation.
-- Support microservices architecture.
-
-## What is a Container?
-
-A container is a running instance of a Docker image.
-
-## What is an Image?
-
-An image is a template used to create containers.
-
-### Image vs Container
-
-| Docker Image | Docker Container |
-|---|---|
-| Template | Running instance |
-| Read-only layers | Writable container layer |
-| Used to create containers | Runs applications |
-| Can create multiple containers | Created from an image |
-| Example: nginx | Example: myweb |
-
----
-
-# 2. Docker Architecture
-
-Docker uses a client-server architecture.
-
-### Main Components
-
-1. Docker Client
-2. Docker Daemon
-3. Docker Images
-4. Docker Containers
-5. Docker Registry
-
-### Architecture Flow
+### Simple architecture
 
 ```text
-             USER
-               |
-               |
-         Docker Client
-               |
-          Docker CLI
-               |
-               v
-         Docker Daemon
-           (dockerd)
-               |
-       -----------------
-       |       |       |
-       v       v       v
-     Images  Containers Networks
-       |
-       v
-   Docker Registry
-    (Docker Hub)
+Docker CLI (docker command)
+          |
+          v
+Docker Engine API
+          |
+          v
+Docker daemon (dockerd)
+    |       |       |       |
+  Images Containers Networks Volumes
+          |
+          v
+     Image Registry
+       (Docker Hub)
 ```
 
-### Explanation
+### Image vs container
 
-**Docker Client:** Accepts Docker commands.
-
-**Docker Daemon:** Manages Docker objects such as containers, images, networks and volumes.
-
-**Docker Image:** Application template.
-
-**Docker Container:** Running application environment.
-
-**Docker Registry:** Stores and distributes Docker images.
+| Image | Container |
+|---|---|
+| Template used to create containers | Instance created from an image |
+| Read-only image layers | Adds a writable container layer |
+| Can be used by many containers | Has its own lifecycle and configuration |
+| `docker images` | `docker ps -a` |
 
 ---
 
-# 3. Docker Installation and Verification
+# 2. Understand the sample command in the terminal screenshot
 
-## Ubuntu Installation
+The command shown is:
 
 ```bash
-sudo apt update
-
-sudo apt install docker.io -y
-
-sudo systemctl start docker
-
-sudo systemctl enable docker
-
-sudo systemctl status docker
+docker run -it -d -v v1:/data --name c5 -p 9012:80 08282c28ff42
 ```
 
-Verify installation:
+The image ID `08282c28ff42` appears to be the image selected from the image listing. Docker accepts an image name or image ID.
+
+### What every part means
+
+| Part | Meaning |
+|---|---|
+| `docker` | Docker command-line client |
+| `run` | Create a new container and start it |
+| `-i` | Keep standard input open |
+| `-t` | Allocate a pseudo-terminal (TTY) |
+| `-d` | Run in detached/background mode |
+| `-v v1:/data` | Mount Docker volume `v1` inside the container at `/data` |
+| `--name c5` | Give the container the name `c5` |
+| `-p 9012:80` | Map host TCP port `9012` to container TCP port `80` |
+| `08282c28ff42` | Image ID used to create the container |
+
+### Important: use spaces between options
+
+Correct command:
+
+```bash
+docker run -it -d -v v1:/data --name c5 -p 9012:80 08282c28ff42
+```
+
+If the volume does not already exist, Docker normally creates a named volume when using `-v v1:/data`.
+
+### Recommended variations
+
+For a background web server, `-d` is usually enough:
+
+```bash
+docker run -d \
+  --name c5 \
+  --mount source=v1,target=/data \
+  -p 9012:80 \
+  08282c28ff42
+```
+
+For an interactive terminal, use `-it` without `-d`:
+
+```bash
+docker run -it --name c5 08282c28ff42 bash
+```
+
+The last example assumes the image contains Bash. If not, try `sh`.
+
+### Verify the container
+
+```bash
+docker ps
+docker ps -a
+docker inspect c5
+docker port c5
+docker logs c5
+docker volume ls
+docker volume inspect v1
+```
+
+### Open a shell in the running container
+
+```bash
+docker exec -it c5 bash
+```
+
+If Bash is not installed:
+
+```bash
+docker exec -it c5 sh
+```
+
+### Test the web port
+
+Open this from a browser if the application inside the container listens on port 80:
+
+```text
+http://EC2-PUBLIC-IP:9012
+```
+
+For an EC2 instance, also allow inbound TCP `9012` in its security group. Make sure the application actually listens on container port `80`.
+
+---
+
+# 3. Docker command structure and options
+
+General structure:
+
+```bash
+docker [GLOBAL OPTIONS] COMMAND [SUBCOMMAND] [OPTIONS] [ARGUMENTS]
+```
+
+Examples:
 
 ```bash
 docker --version
-
-docker version
-
 docker info
-
-docker run hello-world
+docker image ls
+docker container ls -a
+docker volume ls
+docker network ls
 ```
 
-Check Docker service:
+### Useful global options
+
+| Option | Meaning |
+|---|---|
+| `-H` / `--host` | Connect to a specified Docker daemon endpoint |
+| `-c` / `--context` | Use a Docker context |
+| `--config` | Use a specified Docker client configuration directory |
+| `--debug` | Enable debug output |
+| `--help` | Show help |
+| `-v` / `--version` | Show version |
+
+Get help for any command:
+
+```bash
+docker --help
+docker run --help
+docker volume --help
+docker network --help
+docker compose --help
+```
+
+---
+
+# 4. Installation and service management
+
+## Ubuntu / Debian
+
+The distribution package is commonly named `docker.io`. For the latest Docker Engine features, follow Docker's official installation instructions for the distribution.
+
+```bash
+sudo apt update
+sudo apt install docker.io -y
+```
+
+## RHEL / CentOS / Fedora
+
+Package names and installation steps vary by distribution and version. On supported systems, Docker Engine packages are commonly installed from Docker's official repository. Do not assume that a package named simply `docker` is available.
+
+## Check installation
+
+```bash
+docker --version
+docker version
+docker info
+which docker
+```
+
+## Manage the Docker service with systemd
 
 ```bash
 sudo systemctl status docker
-
 sudo systemctl start docker
-
 sudo systemctl stop docker
-
 sudo systemctl restart docker
-
 sudo systemctl enable docker
-
 sudo systemctl disable docker
+sudo systemctl is-active docker
+sudo systemctl is-enabled docker
 ```
 
-### Important
-
-Docker Engine and Docker Compose plugin installation methods can differ depending on the Linux distribution and repository. Verify the installed components before using them.
-
----
-
-# 4. Docker Basic Commands
-
-| Command | Explanation |
-|---|---|
-| `docker --version` | Check Docker version |
-| `docker version` | Client and server versions |
-| `docker info` | Docker system information |
-| `docker help` | Docker help |
-| `docker ps` | Running containers |
-| `docker images` | List images |
-| `docker pull nginx` | Download image |
-| `docker run nginx` | Create and start container |
-| `docker start ID` | Start container |
-| `docker stop ID` | Stop container |
-| `docker restart ID` | Restart container |
-| `docker rm ID` | Remove container |
-| `docker rmi IMAGE` | Remove image |
-| `docker logs ID` | Check logs |
-| `docker inspect ID` | Detailed information |
-| `docker stats` | CPU and memory usage |
-
----
-
-# 5. Docker Images
-
-Docker images are templates used to create containers.
-
-## Image Commands
+## Test Docker
 
 ```bash
-# List all images
-docker images
+sudo docker run hello-world
+```
 
-# Alternative command
+## Run Docker without typing sudo (Linux)
+
+```bash
+sudo usermod -aG docker "$USER"
+```
+
+Log out and log back in for the group change to take effect. Membership in the `docker` group grants root-level privileges on the host; only add trusted users.
+
+---
+
+# 5. Docker images and registries
+
+## List and inspect images
+
+```bash
+docker images
 docker image ls
-
-# Download Nginx image
-docker pull nginx
-
-# Download Ubuntu image
-docker pull ubuntu
-
-# Download specific version
-docker pull nginx:latest
-
-# Inspect image
+docker images -a
+docker image ls -q
 docker image inspect nginx
-
-# Show image history
 docker image history nginx
-
-# Remove image
-docker rmi nginx
-
-# Alternative remove command
-docker image rm nginx
-
-# Remove unused images
-docker image prune
-
-# Remove all unused images
-docker image prune -a
+docker image ls --digests
 ```
 
-## Save and Load Images
+## Download images
 
 ```bash
-# Save image into TAR file
-docker save -o nginx.tar nginx
-
-# Load image from TAR file
-docker load -i nginx.tar
+docker pull nginx
+docker pull nginx:latest
+docker pull ubuntu
+docker pull ubuntu:24.04
+docker pull redis:7
 ```
 
-## Image Tagging
+`latest` is a tag, not a guarantee that the image is the newest or best choice for production. Prefer a deliberate version tag or digest for repeatable deployments.
 
-```bash
-docker tag nginx mynginx:v1
-
-docker images
-```
-
-## Image Search
+## Search Docker Hub
 
 ```bash
 docker search nginx
-
 docker search ubuntu
 ```
 
----
-
-# 6. Docker Containers
-
-Containers are created from Docker images.
-
-## Container Listing Commands
+## Tag images
 
 ```bash
-# Running containers
-docker ps
-
-# All containers
-docker ps -a
-
-# Only container IDs
-docker ps -q
-
-# All container IDs
-docker ps -aq
-
-# Recently created container
-docker ps -l
-
-# Last 5 containers
-docker ps -n 5
-
-# Container IDs and names
-docker ps --format "{{.ID}} {{.Names}}"
+docker tag nginx mynginx:v1
+docker tag myapp:v1 YOUR_DOCKERHUB_USERNAME/myapp:v1
 ```
 
-## Create Containers
+## Push an image
 
 ```bash
-# Create container without starting
-docker create nginx
-
-# Create and start container
-docker run nginx
-
-# Run in background
-docker run -d nginx
-
-# Run with container name
-docker run -d --name myweb nginx
-
-# Run interactive Ubuntu
-docker run -it ubuntu bash
-
-# Run container with automatic removal
-docker run --rm ubuntu echo "Hello Docker"
+docker login
+docker push YOUR_DOCKERHUB_USERNAME/myapp:v1
+docker logout
 ```
 
-## Container Management
+Do not put passwords or access tokens directly in shell commands or Dockerfiles. Use a secure credential method.
+
+## Save and load images
 
 ```bash
-# Start container
-docker start myweb
+# Save an image to a TAR archive
+docker save -o nginx-image.tar nginx:latest
 
-# Stop container
-docker stop myweb
-
-# Restart container
-docker restart myweb
-
-# Pause container
-docker pause myweb
-
-# Resume container
-docker unpause myweb
-
-# Force stop container
-docker kill myweb
-
-# Remove container
-docker rm myweb
-
-# Force remove container
-docker rm -f myweb
-
-# Rename container
-docker rename myweb webserver
-
-# Inspect container
-docker inspect myweb
-
-# Display container processes
-docker top myweb
-
-# Show container port mappings
-docker port myweb
-
-# Wait for container to exit
-docker wait myweb
-
-# Display filesystem changes
-docker diff myweb
+# Load the archive on another Docker host
+docker load -i nginx-image.tar
 ```
 
-## Difference Between Container Commands
+## Export and import a container filesystem
 
-| Command | Meaning |
-|---|---|
-| `docker run` | Create and start |
-| `docker create` | Create only |
-| `docker start` | Start existing container |
-| `docker stop` | Gracefully stop |
-| `docker kill` | Forcefully stop |
-| `docker restart` | Restart |
-| `docker pause` | Pause processes |
-| `docker unpause` | Resume processes |
-| `docker rm` | Remove container |
+```bash
+# Export a container filesystem (not the same as saving an image)
+docker export -o container-filesystem.tar CONTAINER_NAME
+
+# Import a filesystem archive as an image
+docker import container-filesystem.tar imported-image:v1
+```
+
+`save/load` preserve image layers and tags. `export/import` work with a container filesystem and do not preserve the full image metadata/history.
+
+## Remove images
+
+```bash
+docker rmi IMAGE
+docker image rm IMAGE
+docker rmi IMAGE_ID
+docker image prune
+docker image prune -a
+```
+
+An image cannot normally be removed while a container still uses it unless forced. Check containers before removing images.
 
 ---
 
-# 7. Docker Run Commands
+# 6. Docker containers – all essential lifecycle commands
 
-Docker run is one of the most important commands.
-
-## Basic Run
+## List containers
 
 ```bash
-docker run nginx
+docker ps                 # Running containers
+docker ps -a              # All containers
+docker ps -q              # IDs of running containers
+docker ps -aq             # IDs of all containers
+docker ps -l              # Latest created container
+docker ps -n 5            # Last five created containers
+docker container ls
+docker container ls -a
+docker container ls -q
 ```
 
-## Run in Background
+## Create a container without starting it
 
 ```bash
-docker run -d nginx
+docker create --name web1 nginx
 ```
 
-## Run with Name
+## Create and start a container
 
 ```bash
-docker run -d --name myweb nginx
+docker run --name web1 nginx
 ```
 
-## Run with Port Mapping
+## Run in background
 
 ```bash
-docker run -d -p 8080:80 --name myweb nginx
+docker run -d --name web1 nginx
 ```
 
-Explanation:
-
-- 8080 = Host port
-- 80 = Container port
-
-Access:
-
-```text
-http://EC2-PUBLIC-IP:8080
-```
-
-Remember to allow TCP port 8080 in the EC2 security group if accessing from outside.
-
-## Run with Interactive Terminal
+## Start, stop and restart
 
 ```bash
-docker run -it ubuntu bash
+docker start web1
+docker stop web1
+docker restart web1
 ```
 
-## Run with Environment Variables
+## Pause and resume
 
 ```bash
-docker run -d \
---name myapp \
--e APP_ENV=production \
-nginx
+docker pause web1
+docker unpause web1
 ```
 
-## Run with Restart Policy
+## Force stop
 
 ```bash
-docker run -d \
---name myweb \
---restart unless-stopped \
-nginx
+docker kill web1
 ```
 
-Restart policies:
-
-- no
-- always
-- on-failure
-- unless-stopped
-
-## Run with Volume
+## Remove containers
 
 ```bash
-docker run -d \
---name mydata \
--v appdata:/usr/share/nginx/html \
-nginx
+docker rm web1
+docker rm -f web1
+docker container prune
 ```
 
-## Run with Network
+`docker rm` normally requires a stopped container. `docker rm -f` forcefully stops and removes it.
+
+## Rename and inspect
 
 ```bash
-docker run -d \
---name myweb \
---network bridge \
-nginx
+docker rename oldname newname
+docker inspect web1
+docker inspect --format '{{.State.Status}}' web1
+docker inspect --format '{{.Config.Image}}' web1
+docker inspect --format '{{.NetworkSettings.IPAddress}}' web1
 ```
 
----
-
-# 8. Docker Start, Stop, Attach and Exec
-
-These commands are very important for real-time troubleshooting.
-
-## Start Container
+## Other container commands
 
 ```bash
-docker start myweb
-```
-
-## Stop Container
-
-```bash
-docker stop myweb
-```
-
-## Restart Container
-
-```bash
-docker restart myweb
-```
-
-## Attach to Container
-
-```bash
-docker attach myweb
-```
-
-Attach connects your terminal to the container's main process.
-
-To detach without stopping a normally attached container, use:
-
-```text
-Ctrl + P
-Ctrl + Q
-```
-
-## Execute Commands Inside Container
-
-```bash
-docker exec myweb hostname
-
-docker exec myweb whoami
-
-docker exec myweb pwd
-
-docker exec myweb ls
-```
-
-## Enter Container Shell
-
-```bash
-docker exec -it myweb bash
-```
-
-If Bash is unavailable:
-
-```bash
-docker exec -it myweb sh
-```
-
-## Enter as Root
-
-```bash
-docker exec -u root -it myweb bash
-```
-
-## Run Commands Inside Container
-
-```bash
-docker exec myweb cat /etc/os-release
-
-docker exec myweb df -h
-
-docker exec myweb free -m
-
-docker exec myweb ps aux
-```
-
-## Attach vs Exec
-
-| Attach | Exec |
-|---|---|
-| Connects to main process | Starts a new process |
-| Shares main process input/output | Opens independent command |
-| Can affect main process | Does not replace main process |
-| `docker attach myweb` | `docker exec -it myweb bash` |
-
----
-
-# 9. Docker Logs and Troubleshooting
-
-## Logs Commands
-
-```bash
-# Display logs
-docker logs myweb
-
-# Follow live logs
-docker logs -f myweb
-
-# Display last 50 lines
-docker logs --tail 50 myweb
-
-# Logs from last 10 minutes
-docker logs --since 10m myweb
-
-# Show timestamps
-docker logs -t myweb
-
-# Follow last 100 lines
-docker logs -f --tail 100 myweb
-```
-
-## Inspect Commands
-
-```bash
-docker inspect myweb
-
-docker inspect --format '{{.State.Status}}' myweb
-
-docker inspect --format '{{.NetworkSettings.IPAddress}}' myweb
-
-docker inspect --format '{{.Config.Image}}' myweb
-```
-
-## Resource Monitoring
-
-```bash
-# All running container resource usage
+docker top web1
 docker stats
+docker stats web1
+docker stats --no-stream
+docker port web1
+docker diff web1
+docker wait web1
+docker update --restart unless-stopped web1
+```
 
-# Particular container
-docker stats myweb
+---
 
-# Display once instead of continuously
+# 7. `docker run` – detailed option reference
+
+General syntax:
+
+```bash
+docker run [OPTIONS] IMAGE [COMMAND] [ARG...]
+```
+
+## Frequently used options
+
+| Option | Meaning | Example |
+|---|---|---|
+| `-d` | Detached/background mode | `-d` |
+| `-i` | Keep STDIN open | `-i` |
+| `-t` | Allocate a TTY | `-t` |
+| `--name` | Set container name | `--name web1` |
+| `-p` | Publish a port | `-p 8080:80` |
+| `-P` | Publish exposed ports to random host ports | `-P` |
+| `-v` | Mount a volume or bind mount | `-v data:/data` |
+| `--mount` | Explicit mount syntax | `--mount source=data,target=/data` |
+| `-e` | Set environment variable | `-e APP_ENV=prod` |
+| `--env-file` | Read environment variables from file | `--env-file .env` |
+| `--network` | Select network | `--network app-net` |
+| `--restart` | Set restart policy | `--restart unless-stopped` |
+| `--rm` | Remove container when it exits | `--rm` |
+| `-w` | Set working directory | `-w /app` |
+| `-u` | Set user | `-u 1000:1000` |
+| `--entrypoint` | Override image entrypoint | `--entrypoint sh` |
+| `--memory` | Set memory limit | `--memory 512m` |
+| `--cpus` | Set CPU limit | `--cpus 1` |
+| `--read-only` | Use read-only root filesystem | `--read-only` |
+| `--privileged` | Give extended privileges | Avoid unless required |
+| `--hostname` | Set container hostname | `--hostname app01` |
+| `--ip` | Set static IP on a suitable user-defined network | `--ip 172.20.0.10` |
+| `--platform` | Select platform | `--platform linux/amd64` |
+| `--pull` | Set image pull behavior | `--pull always` |
+
+## Run examples
+
+```bash
+# Simple container
+docker run nginx
+
+# Detached container
+docker run -d nginx
+
+# Named container
+docker run -d --name web1 nginx
+
+# Interactive Ubuntu shell
+docker run -it --name ubuntu1 ubuntu bash
+
+# Auto-remove after exit
+docker run --rm ubuntu echo "Hello Docker"
+
+# Publish host port 8080 to container port 80
+docker run -d --name web1 -p 8080:80 nginx
+
+# Publish on all host interfaces explicitly
+docker run -d -p 0.0.0.0:8080:80 nginx
+
+# Publish only on host localhost
+docker run -d -p 127.0.0.1:8080:80 nginx
+
+# Publish all ports exposed by the image to random host ports
+docker run -d -P nginx
+
+# Mount named volume
+docker run -d --name data1 -v mydata:/data ubuntu sleep infinity
+
+# Bind mount a host directory
+docker run -d --name web2 -v /home/ubuntu/html:/usr/share/nginx/html:ro nginx
+
+# Environment variable
+docker run -d --name app1 -e APP_ENV=production nginx
+
+# Environment file
+docker run -d --name app2 --env-file .env nginx
+
+# Select a network
+docker run -d --name web3 --network bridge nginx
+
+# Restart policy
+docker run -d --name web4 --restart unless-stopped nginx
+
+# Memory and CPU limits
+docker run -d --name limited --memory 512m --cpus 1 nginx
+
+# Set hostname
+docker run -d --name hosttest --hostname app01 nginx
+
+# Run as a specific user
+docker run --rm -u 1000:1000 ubuntu id
+```
+
+### Port mapping format
+
+```bash
+-p HOST_PORT:CONTAINER_PORT
+```
+
+Example:
+
+```bash
+docker run -d --name site -p 9012:80 nginx
+```
+
+- Host port: `9012`
+- Container port: `80`
+
+### Volume format using `-v`
+
+```bash
+-v VOLUME_NAME:CONTAINER_PATH
+-v HOST_PATH:CONTAINER_PATH
+```
+
+Examples:
+
+```bash
+-v v1:/data
+-v /home/user/data:/data
+-v /home/user/config:/etc/config:ro
+```
+
+`:ro` means read-only inside the container.
+
+### Explicit mount syntax
+
+```bash
+docker run -d \
+  --name volume-demo \
+  --mount type=volume,source=v1,target=/data \
+  nginx
+```
+
+Bind mount:
+
+```bash
+docker run -d \
+  --name bind-demo \
+  --mount type=bind,source=/home/ubuntu/site,target=/usr/share/nginx/html,readonly \
+  nginx
+```
+
+---
+
+# 8. Entering containers: exec, attach and copy
+
+## `docker exec`
+
+Runs a new process inside an already running container.
+
+```bash
+docker exec CONTAINER command
+docker exec -it web1 bash
+docker exec -it web1 sh
+docker exec -u root -it web1 bash
+docker exec web1 hostname
+docker exec web1 whoami
+docker exec web1 pwd
+docker exec web1 ls -l
+docker exec web1 cat /etc/os-release
+docker exec web1 df -h
+```
+
+## `docker attach`
+
+Connects the terminal to the container's main process.
+
+```bash
+docker attach web1
+```
+
+For a normally attached interactive terminal, `Ctrl+P` followed by `Ctrl+Q` detaches without stopping the container. `Ctrl+C` may send an interrupt to the main process and can stop the application.
+
+## `docker cp`
+
+```bash
+# Copy host file into container
+docker cp index.html web1:/usr/share/nginx/html/
+
+# Copy container file to host
+docker cp web1:/etc/hosts ./hosts
+
+# Copy a directory
+docker cp ./website web1:/tmp/
+```
+
+## `docker commit`
+
+Create an image from a container's current filesystem changes:
+
+```bash
+docker commit web1 myweb-backup:v1
+```
+
+Prefer Dockerfiles for repeatable, reviewable image builds. A commit does not include data stored in mounted volumes.
+
+---
+
+# 9. Logs, inspect, processes and troubleshooting
+
+## Logs
+
+```bash
+docker logs web1
+docker logs -f web1
+docker logs --tail 50 web1
+docker logs --tail 100 -f web1
+docker logs --since 10m web1
+docker logs --since 2026-01-01T10:00:00 web1
+docker logs -t web1
+```
+
+## Inspect details
+
+```bash
+docker inspect web1
+docker inspect --type container web1
+docker inspect --format '{{.State.Status}}' web1
+docker inspect --format '{{.State.ExitCode}}' web1
+docker inspect --format '{{.Config.Image}}' web1
+docker inspect --format '{{json .Mounts}}' web1
+```
+
+## Processes and resource use
+
+```bash
+docker top web1
+docker stats
+docker stats web1
 docker stats --no-stream
 ```
 
-## Process Monitoring
+## Docker daemon logs on systemd Linux
 
 ```bash
-docker top myweb
+sudo journalctl -u docker
+sudo journalctl -u docker -n 100
+sudo journalctl -u docker -f
+```
 
+## Useful host checks
+
+```bash
+df -h
+free -h
+uptime
+top
+ps aux
+sudo ss -tulpn
+ip addr
+ip route
+```
+
+## Common problems
+
+### Docker daemon not running
+
+```bash
+sudo systemctl status docker
+sudo systemctl start docker
+sudo journalctl -u docker -n 100
+```
+
+### Container exited
+
+```bash
+docker ps -a
+docker logs CONTAINER
+docker inspect CONTAINER
+```
+
+### Port already in use
+
+```bash
+sudo ss -tulpn
 docker ps
-
-docker events
+docker port CONTAINER
 ```
 
-## Copy Files
+Choose a different host port if needed:
 
 ```bash
-# Host to container
-docker cp index.html myweb:/usr/share/nginx/html/
-
-# Container to host
-docker cp myweb:/etc/hosts ./hosts
+docker run -d -p 9013:80 nginx
 ```
+
+### Container name already exists
+
+```bash
+docker ps -a
+docker rename oldname newname
+# Or remove the old container if it is no longer needed:
+docker rm oldname
+```
+
+### Image not found
+
+```bash
+docker image ls
+docker pull IMAGE_NAME:TAG
+```
+
+### Cannot access application
+
+Check each layer:
+
+```bash
+docker ps
+docker logs CONTAINER
+docker port CONTAINER
+docker inspect CONTAINER
+sudo ss -tulpn
+```
+
+Also check the host firewall, cloud security group, application listen address, and whether the application is listening on the expected container port.
 
 ---
 
-# 10. Dockerfile
+# 10. Dockerfile and image build
 
-A Dockerfile is a text file containing instructions to build a Docker image.
+A Dockerfile contains instructions for building an image.
 
-## Important Dockerfile Instructions
+## Common Dockerfile instructions
 
-| Instruction | Explanation |
+| Instruction | Purpose |
 |---|---|
-| `FROM` | Base image |
-| `RUN` | Execute build-time commands |
-| `CMD` | Default command |
+| `FROM` | Select base image |
+| `RUN` | Execute build-time command |
+| `CMD` | Default command or arguments |
 | `ENTRYPOINT` | Main executable |
-| `COPY` | Copy files |
-| `ADD` | Copy files and support additional features |
+| `COPY` | Copy files into image |
+| `ADD` | Copy files; also supports URL and archive handling |
 | `WORKDIR` | Set working directory |
-| `ENV` | Set environment variables |
-| `EXPOSE` | Document container port |
-| `USER` | Set runtime user |
+| `ENV` | Set environment variable |
 | `ARG` | Build-time variable |
-| `VOLUME` | Declare mount point |
-| `LABEL` | Add image metadata |
-| `HEALTHCHECK` | Configure health check |
-| `SHELL` | Change shell used by shell-form instructions |
+| `EXPOSE` | Document intended listening port |
+| `USER` | Set user for later build steps/runtime |
+| `VOLUME` | Declare a mount point |
+| `LABEL` | Add metadata |
+| `HEALTHCHECK` | Define container health check |
+| `SHELL` | Set shell for shell-form instructions |
 | `STOPSIGNAL` | Set stop signal |
 
 ## Example Dockerfile
 
 ```dockerfile
-FROM nginx:latest
+FROM nginx:stable
 
 LABEL maintainer="DevOps Team"
 
-WORKDIR /usr/share/nginx/html
-
-COPY index.html .
+COPY index.html /usr/share/nginx/html/index.html
 
 EXPOSE 80
 
 CMD ["nginx", "-g", "daemon off;"]
 ```
 
-## Build Image
+Create an `index.html` file in the same folder:
+
+```html
+<h1>Hello from Docker!</h1>
+<p>My first Docker web application.</p>
+```
+
+Build and run:
 
 ```bash
 docker build -t mywebsite:v1 .
-```
-
-## List Image
-
-```bash
 docker images
-```
-
-## Run Image
-
-```bash
-docker run -d -p 8080:80 --name website mywebsite:v1
-```
-
-## Check Container
-
-```bash
+docker run -d --name mywebsite -p 8080:80 mywebsite:v1
 docker ps
+docker logs mywebsite
 ```
 
-## CMD vs ENTRYPOINT
-
-| CMD | ENTRYPOINT |
-|---|---|
-| Default command or arguments | Main executable |
-| Can be overridden easily | Usually remains the executable |
-| Provides default behavior | Defines the main execution |
-
----
-
-# 11. Docker Image Build, Tag and Push
-
-## Build Image
+## Build commands
 
 ```bash
 docker build -t myapp:v1 .
-```
-
-## Build Without Cache
-
-```bash
-docker build --no-cache -t myapp:v1 .
-```
-
-## Build Using Specific Dockerfile
-
-```bash
+docker build -t myapp:latest .
 docker build -f Dockerfile -t myapp:v1 .
+docker build --no-cache -t myapp:v1 .
+docker build --pull -t myapp:v1 .
+docker image history myapp:v1
 ```
 
-## Login to Docker Hub
+## `.dockerignore`
 
-```bash
-docker login
+Example:
+
+```text
+.git
+.venv
+__pycache__
+*.log
+.env
+node_modules
 ```
 
-## Tag Image
+A `.dockerignore` file excludes matching files from the build context. Do not include secrets in an image or build context.
 
-```bash
-docker tag myapp:v1 username/myapp:v1
-```
+## Multi-stage build concept
 
-## Push Image
-
-```bash
-docker push username/myapp:v1
-```
-
-## Pull Image
-
-```bash
-docker pull username/myapp:v1
-```
-
-## Logout
-
-```bash
-docker logout
-```
+Use multiple `FROM` instructions to build an application in one stage and copy only required runtime artifacts into a smaller final image.
 
 ---
 
-# 12. Docker Networking
+# 11. Ports and networking
 
-Docker networking enables communication between containers and external systems.
-
-## Network Types
-
-| Network | Explanation |
-|---|---|
-| Bridge | Default standalone container network |
-| Host | Shares host network namespace |
-| None | No container networking |
-| Overlay | Connects containers across Swarm nodes |
-| Macvlan | Assigns MAC addresses to containers |
-
-## Network Commands
+## Port mapping
 
 ```bash
-# List networks
+docker run -d --name web1 -p 8080:80 nginx
+docker port web1
+```
+
+## Network commands
+
+```bash
 docker network ls
-
-# Create network
-docker network create mynetwork
-
-# Inspect network
-docker network inspect mynetwork
-
-# Connect container
-docker network connect mynetwork myweb
-
-# Disconnect container
-docker network disconnect mynetwork myweb
-
-# Remove network
-docker network rm mynetwork
-
-# Remove unused networks
+docker network create app-net
+docker network inspect app-net
+docker network connect app-net web1
+docker network disconnect app-net web1
+docker network rm app-net
 docker network prune
 ```
 
-## Create Bridge Network
+## Run a container on a user-defined network
 
 ```bash
-docker network create dev-network
+docker network create app-net
+
+docker run -d --name web1 --network app-net nginx
+
+docker run -d --name web2 --network app-net nginx
 ```
 
-## Run Container on Network
+On a user-defined bridge network, containers can normally discover each other by container name.
+
+## Test container-to-container connectivity
 
 ```bash
-docker run -dit \
---name app1 \
---network dev-network \
-ubuntu
+docker exec web1 getent hosts web2
 ```
 
-## Run Second Container
+The tools available inside an image vary. Install diagnostic tools in a temporary test container if needed.
 
-```bash
-docker run -dit \
---name app2 \
---network dev-network \
-ubuntu
-```
+## Network drivers
 
-## Test Communication
-
-```bash
-docker exec app1 ping -c 4 app2
-```
-
-Note: The Ubuntu image may need the `iputils-ping` package installed to use ping.
+- `bridge`: Common for standalone containers on one Docker host.
+- `host`: Uses the host network namespace; port publishing is not used in the usual way.
+- `none`: No external network connectivity configured by Docker.
+- `overlay`: Used for multi-host container networking, commonly with Swarm.
+- `macvlan`: Gives containers MAC addresses on a physical network.
 
 ---
 
-# 13. Docker Volumes and Storage
+# 12. Volumes and bind mounts
 
-Volumes are used to persist data outside the container's writable layer.
+Volumes persist data independently of a container's lifecycle.
 
-If a container is removed, its data in a separately managed volume can remain.
-
-## Volume Commands
+## Volume commands
 
 ```bash
-# List volumes
 docker volume ls
-
-# Create volume
-docker volume create mydata
-
-# Inspect volume
-docker volume inspect mydata
-
-# Remove volume
-docker volume rm mydata
-
-# Remove unused volumes
+docker volume create v1
+docker volume inspect v1
+docker volume rm v1
 docker volume prune
 ```
 
-## Create Container with Volume
+## Create a container with a named volume
 
 ```bash
-docker run -d \
---name nginx-data \
--v mydata:/usr/share/nginx/html \
-nginx
+docker run -d --name data-container -v v1:/data ubuntu sleep infinity
 ```
 
-## Bind Mount
+## Check the mount
 
 ```bash
-docker run -d \
---name web \
--v /home/ubuntu/html:/usr/share/nginx/html \
-nginx
+docker inspect data-container
+docker exec data-container df -h
 ```
 
-## Difference Between Volume and Bind Mount
+## Write data
 
-| Volume | Bind Mount |
+```bash
+docker exec data-container sh -c 'echo Docker-data > /data/test.txt'
+docker exec data-container cat /data/test.txt
+```
+
+## Remove the container and create another using the same volume
+
+```bash
+docker rm -f data-container
+
+docker run -d --name data-container2 -v v1:/data ubuntu sleep infinity
+
+docker exec data-container2 cat /data/test.txt
+```
+
+The file remains because it is stored in the named volume, not only in the removed container's writable layer.
+
+## Bind mount example
+
+```bash
+mkdir -p /home/ubuntu/site
+echo "Hello from host" > /home/ubuntu/site/index.html
+
+docker run -d \
+  --name bind-web \
+  -p 8080:80 \
+  -v /home/ubuntu/site:/usr/share/nginx/html:ro \
+  nginx
+```
+
+## Volume vs bind mount
+
+| Volume | Bind mount |
 |---|---|
-| Managed by Docker | Uses host filesystem path |
-| Easier to manage | Direct host directory access |
-| Good for persistent application data | Good for development and file sharing |
+| Managed by Docker | Uses a host path |
+| Created with `docker volume create` or by a run mount | Host path must be selected |
+| Useful for persistent application data | Useful for sharing host files and development |
+| `-v v1:/data` | `-v /host/path:/data` |
+
+Do not use `docker volume prune` until you have checked which volumes are unused and whether they contain data you need.
+
+---
+
+# 13. Environment variables, resource limits and restart policies
+
+## Environment variables
+
+```bash
+docker run -d --name app1 -e APP_ENV=production nginx
+docker exec app1 printenv
+```
+
+Use an environment file:
+
+```bash
+docker run -d --name app2 --env-file .env nginx
+```
+
+Example `.env`:
+
+```text
+APP_ENV=production
+APP_PORT=8080
+```
+
+Do not store passwords or other secrets in a committed `.env` file.
+
+## Restart policies
+
+```bash
+docker run -d --restart no nginx
+docker run -d --restart always nginx
+docker run -d --restart on-failure nginx
+docker run -d --restart unless-stopped nginx
+```
+
+Update an existing container:
+
+```bash
+docker update --restart unless-stopped web1
+```
+
+## Memory and CPU limits
+
+```bash
+docker run -d --name app1 --memory 512m nginx
+docker run -d --name app2 --cpus 1 nginx
+docker run -d --name app3 --memory 512m --cpus 1 nginx
+```
+
+Monitor:
+
+```bash
+docker stats
+docker inspect app3
+```
 
 ---
 
 # 14. Docker Compose
 
-Docker Compose is used to define and manage multiple containers using a YAML file.
+Docker Compose manages applications described in a YAML file.
 
-## Important Commands
+## Common Compose commands
 
 ```bash
-# Check version
 docker compose version
-
-# Start services
 docker compose up
-
-# Start in background
 docker compose up -d
-
-# Stop services
-docker compose stop
-
-# Start existing services
-docker compose start
-
-# Restart services
-docker compose restart
-
-# Stop and remove Compose resources
 docker compose down
-
-# List services
+docker compose stop
+docker compose start
+docker compose restart
 docker compose ps
-
-# Display logs
 docker compose logs
-
-# Follow logs
 docker compose logs -f
-
-# Pull service images
 docker compose pull
-
-# Build images
 docker compose build
-
-# Execute command
-docker compose exec web bash
-
-# Run one-off command
-docker compose run web bash
-
-# Validate configuration
 docker compose config
-
-# List service images
 docker compose images
-
-# Show service processes
 docker compose top
+docker compose exec web sh
+docker compose run --rm web sh
 ```
 
-## Example docker-compose.yml
+## Example `compose.yaml`
 
 ```yaml
 services:
   web:
-    image: nginx:latest
-    container_name: nginx-web
+    image: nginx:stable
+    container_name: compose-web
     ports:
       - "8080:80"
     restart: unless-stopped
 
-  ubuntu:
-    image: ubuntu:latest
-    container_name: ubuntu-test
-    command: sleep infinity
+  redis:
+    image: redis:7
+    container_name: compose-redis
     restart: unless-stopped
 ```
 
-Start:
+Start and verify:
 
 ```bash
 docker compose up -d
-```
-
-Check:
-
-```bash
 docker compose ps
-```
-
-Logs:
-
-```bash
 docker compose logs -f
 ```
 
-Stop:
+Stop and remove Compose-created containers and networks:
 
 ```bash
 docker compose down
 ```
 
----
-
-# 15. Docker Registry and Docker Hub
-
-Docker Registry stores Docker images.
-
-Docker Hub is a public image registry.
-
-## Commands
-
-```bash
-docker login
-
-docker logout
-
-docker search nginx
-
-docker pull nginx
-
-docker images
-
-docker tag nginx username/nginx:v1
-
-docker push username/nginx:v1
-```
-
-## Complete Push and Pull Flow
-
-```text
-Build Image
-    |
-    v
-Tag Image
-    |
-    v
-Docker Login
-    |
-    v
-Docker Push
-    |
-    v
-Docker Hub
-    |
-    v
-Docker Pull
-    |
-    v
-Run Container
-```
+Volumes are not removed by default. `docker compose down -v` removes declared named and anonymous volumes associated with the Compose project; use carefully.
 
 ---
 
-# 16. Docker System Management and Cleanup
+# 15. Docker system, disk usage and cleanup
 
-## System Commands
+## Disk usage
 
 ```bash
-# Docker information
-docker system info
-
-# Disk usage
 docker system df
-
-# Detailed disk usage
 docker system df -v
+```
 
-# Docker events
-docker system events
+## Cleanup commands
 
-# Remove stopped containers
+```bash
 docker container prune
-
-# Remove unused images
 docker image prune
-
-# Remove unused networks
+docker image prune -a
 docker network prune
-
-# Remove unused volumes
 docker volume prune
-
-# Remove unused resources
+docker builder prune
 docker system prune
-
-# Remove all unused images and resources
 docker system prune -a
 ```
 
-## Important Warning
+## Cleanup all unused resources including unused volumes
 
 ```bash
 docker system prune -a --volumes
 ```
 
-This is a destructive cleanup command. It can remove unused images, containers, networks and volumes. Never execute it blindly on a production server.
+**Warning:** Cleanup commands delete Docker resources. In particular, volume cleanup may permanently delete data. Inspect resources and confirm backups before cleanup.
 
----
-
-# 17. Docker Resource Management
-
-Docker supports CPU and memory limits.
-
-## Memory Limit
+## System events and version information
 
 ```bash
-docker run -d \
---name limited-app \
---memory=512m \
-nginx
-```
-
-## CPU Limit
-
-```bash
-docker run -d \
---name cpu-app \
---cpus=1 \
-nginx
-```
-
-## CPU and Memory Together
-
-```bash
-docker run -d \
---name resource-app \
---memory=512m \
---cpus=1 \
-nginx
-```
-
-## Monitor Resources
-
-```bash
-docker stats
-
-docker stats --no-stream
-
-docker inspect resource-app
+docker system events
+docker version
+docker info
+docker context ls
+docker context show
+docker context inspect
 ```
 
 ---
 
-# 18. Docker Security Basics
+# 16. Docker security
 
-Important security practices:
+Important practices:
 
-1. Avoid running containers as root unnecessarily.
-2. Use trusted images.
-3. Keep images updated.
-4. Avoid hardcoding passwords in Dockerfiles.
-5. Use environment variables or secrets management appropriately.
-6. Limit container CPU and memory.
-7. Use read-only filesystems where possible.
-8. Avoid exposing unnecessary ports.
-9. Do not mount sensitive host directories without a reason.
+1. Use trusted base images.
+2. Prefer specific image versions or digests for repeatable deployments.
+3. Avoid running as root unless required.
+4. Do not store passwords or tokens in Dockerfiles.
+5. Do not expose unnecessary ports.
+6. Limit CPU and memory.
+7. Use read-only mounts where appropriate.
+8. Avoid `--privileged` unless there is a clear requirement.
+9. Keep Docker Engine and images updated.
 10. Scan images for vulnerabilities.
+11. Protect the Docker socket; access to it can grant host-level control.
+12. Back up important volume data.
 
-## Run Container as Non-Root User
+Example read-only root filesystem:
 
 ```bash
-docker run --user 1000:1000 nginx
+docker run -d --name readonly-web --read-only nginx
 ```
 
-Note: The application must have the permissions it needs to operate as that user.
+Some applications need writable temporary directories or paths, so test before using this setting.
 
 ---
 
-# 19. Docker Troubleshooting – Real-Time Commands
+# 17. Practical exercises
 
-| Problem | Command |
-|---|---|
-| Container not running | `docker ps -a` |
-| Check container logs | `docker logs CONTAINER` |
-| Inspect container | `docker inspect CONTAINER` |
-| Check CPU/memory | `docker stats` |
-| Check processes | `docker top CONTAINER` |
-| Check image | `docker images` |
-| Check networks | `docker network ls` |
-| Check volumes | `docker volume ls` |
-| Check port mapping | `docker port CONTAINER` |
-| Check Docker service | `systemctl status docker` |
-| Restart Docker service | `sudo systemctl restart docker` |
-| Check Docker disk usage | `docker system df` |
-| Check Docker daemon logs | `journalctl -u docker -n 100` |
-| Follow Docker daemon logs | `journalctl -u docker -f` |
-
-## Common Errors
-
-### Error 1: Cannot Connect to Docker Daemon
-
-Check:
-
-```bash
-sudo systemctl status docker
-
-sudo systemctl start docker
-```
-
-### Error 2: Container Name Already in Use
-
-Check:
-
-```bash
-docker ps -a
-```
-
-Remove old container if safe:
-
-```bash
-docker rm old-container
-```
-
-### Error 3: Port Already Allocated
-
-Check:
-
-```bash
-sudo ss -tulpn
-```
-
-Use another port:
-
-```bash
-docker run -d -p 8081:80 nginx
-```
-
-### Error 4: Image Not Found
-
-Check:
-
-```bash
-docker images
-```
-
-Pull image:
+## Exercise 1 – Pull and run Nginx
 
 ```bash
 docker pull nginx
-```
-
-### Error 5: Container Exits Immediately
-
-Check:
-
-```bash
-docker ps -a
-
-docker logs CONTAINER
-
-docker inspect CONTAINER
-```
-
-Remember: A container generally stops when its main process exits.
-
----
-
-# 20. Complete Docker Hands-on Project
-
-## Project: Deploy Nginx Web Server Using Docker on AWS EC2
-
-### Step 1: Check Docker
-
-```bash
-docker --version
-
-sudo systemctl status docker
-```
-
-### Step 2: Pull Nginx Image
-
-```bash
-docker pull nginx
-```
-
-### Step 3: Create Container
-
-```bash
-docker run -d \
---name myweb \
--p 8080:80 \
-nginx
-```
-
-### Step 4: Verify Container
-
-```bash
+docker run -d --name web1 -p 8080:80 nginx
 docker ps
-
-docker ps -a
+docker logs web1
 ```
 
-### Step 5: Access Website
-
-```text
-http://EC2-PUBLIC-IP:8080
-```
-
-### Step 6: Enter Container
+## Exercise 2 – Enter the container
 
 ```bash
-docker exec -it myweb bash
-```
-
-Inside the container:
-
-```bash
+docker exec -it web1 bash
 hostname
-
 whoami
-
 pwd
-
 ls
-
 cat /etc/os-release
-
 exit
 ```
 
-### Step 7: Check Logs
+If Bash is unavailable, use `sh`.
+
+## Exercise 3 – Stop, start and restart
 
 ```bash
-docker logs myweb
+docker stop web1
+docker ps -a
+docker start web1
+docker restart web1
 ```
 
-### Step 8: Stop Container
+## Exercise 4 – Create and use a volume
 
 ```bash
-docker stop myweb
+docker volume create v1
+
+docker run -d --name c1 \
+  -v v1:/data \
+  ubuntu sleep infinity
+
+docker exec c1 sh -c 'echo hello > /data/file.txt'
+docker exec c1 cat /data/file.txt
+docker volume inspect v1
 ```
 
-### Step 9: Start Container
+## Exercise 5 – Remove container but preserve volume
 
 ```bash
-docker start myweb
+docker rm -f c1
+
+docker run -d --name c2 \
+  -v v1:/data \
+  ubuntu sleep infinity
+
+docker exec c2 cat /data/file.txt
 ```
 
-### Step 10: Restart Container
+## Exercise 6 – Practice the command from the screenshot
 
 ```bash
-docker restart myweb
+docker run -d \
+  --name c5 \
+  -v v1:/data \
+  -p 9012:80 \
+  08282c28ff42
 ```
 
-### Step 11: Remove Container
-
-```bash
-docker stop myweb
-
-docker rm myweb
-```
-
----
-
-# 21. Docker Daily-Use Commands Cheat Sheet
-
-| No. | Command | Purpose |
-|---:|---|---|
-| 1 | `docker --version` | Version |
-| 2 | `docker info` | System information |
-| 3 | `docker images` | List images |
-| 4 | `docker pull nginx` | Pull image |
-| 5 | `docker ps` | Running containers |
-| 6 | `docker ps -a` | All containers |
-| 7 | `docker run -d nginx` | Run container |
-| 8 | `docker create nginx` | Create container |
-| 9 | `docker start ID` | Start |
-| 10 | `docker stop ID` | Stop |
-| 11 | `docker restart ID` | Restart |
-| 12 | `docker kill ID` | Force stop |
-| 13 | `docker pause ID` | Pause |
-| 14 | `docker unpause ID` | Resume |
-| 15 | `docker attach ID` | Attach |
-| 16 | `docker exec -it ID bash` | Enter container |
-| 17 | `docker logs ID` | Logs |
-| 18 | `docker inspect ID` | Inspect |
-| 19 | `docker stats` | Resource monitoring |
-| 20 | `docker top ID` | Processes |
-| 21 | `docker port ID` | Port mapping |
-| 22 | `docker cp` | Copy files |
-| 23 | `docker rm ID` | Remove container |
-| 24 | `docker rmi IMAGE` | Remove image |
-| 25 | `docker build -t app .` | Build image |
-| 26 | `docker tag IMAGE TAG` | Tag image |
-| 27 | `docker push IMAGE` | Push image |
-| 28 | `docker network ls` | List networks |
-| 29 | `docker volume ls` | List volumes |
-| 30 | `docker compose up -d` | Start Compose |
-| 31 | `docker compose down` | Stop Compose |
-| 32 | `docker system df` | Disk usage |
-| 33 | `docker system prune` | Cleanup |
-
----
-
-# 22. Docker Interview Questions and Answers
-
-### Q1. What is Docker?
-
-Docker is a containerization platform used to package and run applications in isolated containers.
-
-### Q2. What is a Docker image?
-
-An image is a template used to create containers.
-
-### Q3. What is a Docker container?
-
-A container is a running or stopped instance of an image.
-
-### Q4. Difference between Docker image and container?
-
-An image is the template, whereas a container is an instance created from that image.
-
-### Q5. Difference between docker run and docker start?
-
-`docker run` creates and starts a new container. `docker start` starts an existing stopped container.
-
-### Q6. Difference between docker stop and docker kill?
-
-`docker stop` attempts a graceful shutdown. `docker kill` sends a termination signal immediately by default.
-
-### Q7. Difference between docker exec and docker attach?
-
-`exec` starts a new process inside a container. `attach` connects to the existing main process.
-
-### Q8. Difference between docker ps and docker ps -a?
-
-`docker ps` displays running containers. `docker ps -a` displays all containers.
-
-### Q9. What is Docker Hub?
-
-Docker Hub is an image registry used to store and distribute Docker images.
-
-### Q10. What is a Dockerfile?
-
-A Dockerfile contains instructions for building Docker images.
-
-### Q11. What is Docker Compose?
-
-Docker Compose is used to define and manage multi-container applications.
-
-### Q12. What is Docker networking?
-
-Docker networking enables communication between containers and other systems.
-
-### Q13. What is a Docker volume?
-
-A Docker volume is used to persist application data outside the container's writable layer.
-
-### Q14. How do you troubleshoot a container?
-
-Use:
+Check:
 
 ```bash
 docker ps -a
-
-docker logs CONTAINER
-
-docker inspect CONTAINER
-
-docker stats
+docker inspect c5
+docker port c5
+docker logs c5
+docker exec -it c5 sh
 ```
 
-### Q15. How do you check container CPU and memory?
+This assumes the image ID still exists locally and that the image's application listens on port 80. Add `-it` instead of `-d` when you want an interactive foreground session; combining `-it -d` is possible but not usually necessary for a web-server container.
+
+## Exercise 7 – Build your own image
+
+Create a directory:
 
 ```bash
-docker stats
+mkdir docker-demo
+cd docker-demo
 ```
 
-### Q16. How do you copy files between host and container?
+Create `index.html`:
+
+```html
+<h1>Hello from my Docker image!</h1>
+```
+
+Create `Dockerfile`:
+
+```dockerfile
+FROM nginx:stable
+COPY index.html /usr/share/nginx/html/index.html
+EXPOSE 80
+```
+
+Build and run:
 
 ```bash
-docker cp file.txt container:/tmp/
+docker build -t mysite:v1 .
+docker run -d --name mysite -p 8081:80 mysite:v1
+docker ps
+docker logs mysite
 ```
-
-### Q17. How do you remove unused containers?
-
-```bash
-docker container prune
-```
-
-### Q18. What is the difference between CMD and ENTRYPOINT?
-
-CMD specifies default commands or arguments. ENTRYPOINT specifies the main executable.
-
-### Q19. What happens when a container is stopped?
-
-Its main process stops, but the container remains available to restart unless it is removed.
-
-### Q20. Can multiple containers use the same image?
-
-Yes. Multiple containers can be created from the same image.
-
-### Q21. What is a Docker daemon?
-
-The Docker daemon manages Docker objects and processes API requests.
-
-### Q22. What is port mapping?
-
-Port mapping connects a host port to a container port.
-
-Example:
-
-```bash
-docker run -d -p 8080:80 nginx
-```
-
-### Q23. What is the difference between volume and bind mount?
-
-A volume is managed by Docker, while a bind mount maps a specific host filesystem path.
-
-### Q24. What is a Docker restart policy?
-
-It defines whether Docker should restart a container after it exits or the Docker daemon restarts.
-
-### Q25. What is a multi-stage Docker build?
-
-A multi-stage build uses multiple `FROM` stages to separate build dependencies from the final runtime image, helping create smaller production images.
 
 ---
 
-# 23. Docker Learning Roadmap
+# 18. Daily-use Docker command cheat sheet
 
-Follow this order:
-
-| Stage | Topic | Priority |
-|---|---|---|
-| 1 | Docker Basics | Very High |
-| 2 | Docker Images | Very High |
-| 3 | Docker Containers | Very High |
-| 4 | Run, Start, Stop, Exec, Attach | Very High |
-| 5 | Dockerfile | Very High |
-| 6 | Docker Networking | High |
-| 7 | Docker Volumes | High |
-| 8 | Docker Compose | High |
-| 9 | Docker Hub | High |
-| 10 | Docker Troubleshooting | Very High |
-| 11 | Docker Security | Medium |
-| 12 | Docker with AWS EC2 | Very High |
-| 13 | Docker with Kubernetes | Advanced |
-| 14 | Docker in CI/CD Pipeline | Advanced |
+| Task | Command |
+|---|---|
+| Version | `docker --version` |
+| System information | `docker info` |
+| List images | `docker images` |
+| Pull image | `docker pull nginx` |
+| Running containers | `docker ps` |
+| All containers | `docker ps -a` |
+| Run background container | `docker run -d nginx` |
+| Run named container | `docker run -d --name web1 nginx` |
+| Map port | `docker run -d -p 8080:80 nginx` |
+| Create container | `docker create nginx` |
+| Start | `docker start web1` |
+| Stop | `docker stop web1` |
+| Restart | `docker restart web1` |
+| Force stop | `docker kill web1` |
+| Pause | `docker pause web1` |
+| Resume | `docker unpause web1` |
+| Enter container | `docker exec -it web1 sh` |
+| Attach | `docker attach web1` |
+| Logs | `docker logs web1` |
+| Live logs | `docker logs -f web1` |
+| Inspect | `docker inspect web1` |
+| Processes | `docker top web1` |
+| CPU/memory | `docker stats` |
+| Port mapping | `docker port web1` |
+| Copy file | `docker cp file.txt web1:/tmp/` |
+| Remove container | `docker rm web1` |
+| Remove image | `docker rmi nginx` |
+| Build image | `docker build -t app:v1 .` |
+| Tag image | `docker tag app:v1 user/app:v1` |
+| Push image | `docker push user/app:v1` |
+| List networks | `docker network ls` |
+| Create network | `docker network create app-net` |
+| List volumes | `docker volume ls` |
+| Create volume | `docker volume create v1` |
+| Compose up | `docker compose up -d` |
+| Compose down | `docker compose down` |
+| Disk usage | `docker system df` |
+| Cleanup stopped containers | `docker container prune` |
 
 ---
 
-# Final Notes
+# 19. Docker interview questions and answers
 
-Docker is one of the most important tools in DevOps.
+**1. What is Docker?**  
+Docker is a platform for building, distributing and running applications in containers.
 
-Understand these five concepts very clearly:
+**2. What is an image?**  
+A read-only template used to create containers.
 
-1. Images – Application templates.
-2. Containers – Running application instances.
-3. Dockerfile – Instructions to build images.
-4. Volumes – Persistent data storage.
-5. Networks – Communication between containers.
+**3. What is a container?**  
+An instance of an image with its own runtime configuration and writable layer.
 
-**Recommended DevOps Learning Path:**
+**4. Difference between `docker run` and `docker start`?**  
+`run` creates and starts a new container. `start` starts an existing container.
 
-Linux → Networking → Git/GitHub → Docker → Kubernetes → Terraform → AWS → Jenkins/CI/CD.
+**5. Difference between `docker stop` and `docker kill`?**  
+`stop` requests graceful termination and may wait before force-killing. `kill` sends a signal immediately, SIGKILL by default.
 
-**Practice every command on your Ubuntu EC2 server. Understanding commands through hands-on practice is more important than memorizing them.**
+**6. Difference between `docker exec` and `docker attach`?**  
+`exec` starts a new process. `attach` connects to the main process.
 
+**7. Difference between `docker ps` and `docker ps -a`?**  
+`ps` shows running containers; `ps -a` shows all containers.
+
+**8. What is Docker Hub?**  
+A registry service for storing and distributing images.
+
+**9. What is a Dockerfile?**  
+A text file containing image build instructions.
+
+**10. What is Docker Compose?**  
+A tool for defining and managing multi-container applications.
+
+**11. What is a Docker volume?**  
+Docker-managed storage that can persist beyond a container's lifecycle.
+
+**12. What is a bind mount?**  
+A mount that maps a host file or directory into a container.
+
+**13. What is port mapping?**  
+Publishing a host port and forwarding traffic to a container port.
+
+**14. What does `-d` mean?**  
+Run the container in detached mode.
+
+**15. What do `-it` mean?**  
+`-i` keeps standard input open; `-t` allocates a pseudo-terminal.
+
+**16. What does `-v v1:/data` mean?**  
+Mount the Docker volume named `v1` at `/data` inside the container.
+
+**17. What does `--name c5` mean?**  
+Assign the container the name `c5`.
+
+**18. What does `-p 9012:80` mean?**  
+Map host port 9012 to container port 80.
+
+**19. What is a Docker daemon?**  
+The background service that manages Docker objects and requests.
+
+**20. How do you troubleshoot a container?**  
+Start with `docker ps -a`, `docker logs`, `docker inspect`, `docker stats` and host service logs.
+
+**21. What is a multi-stage build?**  
+A build with multiple stages that can keep build tools out of the final runtime image.
+
+**22. What is a restart policy?**  
+A setting that controls whether Docker restarts a container after it exits or the daemon restarts.
+
+**23. What is the difference between `docker save` and `docker export`?**  
+`save` archives an image with its layers and metadata; `export` archives a container filesystem.
+
+**24. What is the difference between `docker load` and `docker import`?**  
+`load` restores an image archive made with `save`; `import` creates an image from a filesystem archive.
+
+**25. What happens to a named volume when a container is removed?**  
+The volume normally remains until explicitly removed or pruned.
+
+---
+
+# 20. Important command differences – quick revision
+
+| Commands | Difference |
+|---|---|
+| `run` vs `start` | Create + start new container vs start existing container |
+| `create` vs `run` | Create only vs create and start |
+| `stop` vs `kill` | Graceful stop vs immediate signal |
+| `exec` vs `attach` | New process vs connect to main process |
+| `ps` vs `ps -a` | Running vs all containers |
+| `rm` vs `rmi` | Remove container vs remove image |
+| `pull` vs `push` | Download image vs upload image |
+| `save` vs `export` | Save image archive vs export container filesystem |
+| `load` vs `import` | Restore image archive vs create image from filesystem archive |
+| `volume` vs bind mount | Docker-managed storage vs host path mount |
+| `-p` vs `-P` | Explicit port mapping vs publish exposed ports on random host ports |
+| `-i` vs `-t` | Keep STDIN open vs allocate a terminal |
+| `-d` vs `-it` | Background mode vs interactive terminal |
+| `CMD` vs `ENTRYPOINT` | Default command/arguments vs main executable |
+
+---
+
+# Docker learning roadmap
+
+```text
+Linux
+  |
+Networking
+  |
+Git & GitHub
+  |
+Docker Basics
+  |
+Docker Images
+  |
+Docker Containers
+  |
+Dockerfile
+  |
+Docker Networking & Volumes
+  |
+Docker Compose
+  |
+Kubernetes
+  |
+Terraform
+  |
+AWS
+  |
+CI/CD
+```
+
+## Final learning advice
+
+Do not try to memorize every Docker command in one day.
+
+Practice these first:
+
+1. `docker pull`
+2. `docker images`
+3. `docker run`
+4. `docker ps`
+5. `docker ps -a`
+6. `docker start`
+7. `docker stop`
+8. `docker restart`
+9. `docker exec -it`
+10. `docker attach`
+11. `docker logs`
+12. `docker inspect`
+13. `docker rm`
+14. `docker rmi`
+15. `docker run -v`
+16. `docker run -p`
+17. `docker network`
+18. `docker volume`
+19. `docker build`
+20. `docker compose up -d`
+
+**Goal:** Understand what every option does, practice on your Ubuntu/RHEL lab, and learn how Docker fits into a real DevOps deployment.
